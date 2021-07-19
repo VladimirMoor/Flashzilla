@@ -12,10 +12,11 @@ struct CardView: View {
     let card: Card
     @State private var isShowingAnswer = false
     @State private var offset = CGSize.zero
-    var removal: (() -> Void)? = nil
+    var removal: ((_ correct: Bool) -> Void)? = nil
     @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
     @State private var feedback = UINotificationFeedbackGenerator()
     @Environment(\.accessibilityEnabled) var accessibilityEnabled
+    
     
     var body: some View {
         ZStack {
@@ -70,11 +71,16 @@ struct CardView: View {
                         
                         if self.offset.width > 0 {
                             self.feedback.notificationOccurred(.success)
+                            self.removal?(true)
                         } else {
                             self.feedback.notificationOccurred(.error)
+                            
+                            self.removal?(false)
+
                         }
                         
-                        self.removal?()
+                        
+                        
                     } else {
                         self.offset = .zero
                     }
@@ -88,8 +94,4 @@ struct CardView: View {
     }
 }
 
-struct CardView_Previews: PreviewProvider {
-    static var previews: some View {
-        CardView(card: Card.example)
-    }
-}
+

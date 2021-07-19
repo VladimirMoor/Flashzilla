@@ -9,14 +9,15 @@ import SwiftUI
 
 
 struct ContentView: View {
-    @State private var cards = [Card]()
+    @State private var cards: [Card] = []
     @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColors
     @Environment(\.accessibilityEnabled) var accessibiblityEnabled
     
-    @State private var timeRemaining = 100
+    @State private var timeRemaining = 30
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var isActive = true
     @State private var showingEditScreen = false
+    @State private var isCorrect = false
     
     var body: some View {
         
@@ -27,7 +28,7 @@ struct ContentView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack {
-                Text("Time: \(timeRemaining)")
+                Text(timeRemaining > 0 ? "Time: \(timeRemaining)" : "Game Over")
                     .font(.largeTitle)
                     .foregroundColor(.white)
                     .padding(.horizontal, 20)
@@ -37,20 +38,26 @@ struct ContentView: View {
                         .fill(Color.black)
                         .opacity(0.75)
                     )
+                
                 ZStack {
                     ForEach(0..<cards.count, id: \.self) { index in
-                        CardView(card: self.cards[index]) {
-                            withAnimation {
-                                self.removeCard(at: index)
-                            }
+                        CardView(card: self.cards[index]) { isCorrect in
+
+                            self.removeCard(at: index, isCorrect: isCorrect)
+                            
+                            print("Cards total: \(cards.count)")
+                        
                         }
                         .stacked(at: index, in: self.cards.count)
-                        .allowsHitTesting(index == self.cards.count - 1)
+                        // .allowsHitTesting(index == self.cards.count - 1)
                         .accessibility(hidden: index < self.cards.count - 1)
                     }
                 }
                 .allowsHitTesting(timeRemaining > 0)
-                if cards.isEmpty {
+                
+
+                
+                if cards.isEmpty || timeRemaining == 0 {
                     Button("Start Again", action: resetCards)
                         .padding()
                         .background(Color.white)
@@ -87,7 +94,7 @@ struct ContentView: View {
                     HStack {
                         Button(action: {
                             withAnimation {
-                                self.removeCard(at: self.cards.count - 1)
+                                self.removeCard(at: self.cards.count - 1, isCorrect: false)
                             }
                         }) {
                             Image(systemName: "xmark.circle")
@@ -101,7 +108,7 @@ struct ContentView: View {
                         
                         Button(action: {
                             withAnimation {
-                                self.removeCard(at: self.cards.count - 1)
+                                self.removeCard(at: self.cards.count - 1, isCorrect: true)
                             }
                         }) {
                             Image(systemName: "checkmark.circle")
@@ -139,16 +146,38 @@ struct ContentView: View {
         
     }
     
-    func removeCard(at index: Int) {
+
+    func removeCard(at index: Int, isCorrect: Bool) {
         guard index >= 0 else { return }
-        cards.remove(at: index)
+        
+        let card = cards.remove(at: index)
+        
+        if isCorrect {
+            
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.cards.insert(card, at: 0)
+            }
+        }
+        
         if cards.isEmpty {
             isActive = false
         }
+        
     }
     
+    func repeatCard(at index: Int) {
+        guard index >= 0 else { return }
+        
+        let newCard = cards[index]
+        cards.remove(at: index)
+        cards.insert(newCard, at: 0)
+    }
+    
+
+    
     func resetCards() {
-        timeRemaining = 100
+        timeRemaining = 30
         isActive = true
         loadData()
     }
@@ -175,3 +204,20 @@ extension View {
     }
     
 }
+
+
+struct CustomTextView: View {
+    let card: Card
+    @Binding var isitCorrect: Bool
+    
+    
+    var body: some View {
+        Text(card.prompt)
+            .background(Color.yellow)
+            .onAppear() {
+                isitCorrect = isitCorrect
+            }
+    }
+}
+
+
